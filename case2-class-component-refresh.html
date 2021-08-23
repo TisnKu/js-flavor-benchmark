@@ -1,0 +1,212 @@
+<head>
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+
+    <style type="text/css">
+        .container {
+            margin: 30px auto;
+        }
+
+        .flavorWrapper {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .flavor {
+            flex: 1;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+        }
+
+        .flavor:first-child {
+            background-color: lightpink;
+        }
+
+        .flavor:last-child {
+            background-color: lightblue;
+        }
+
+        .placeholder {
+            margin: 50px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+
+</head>
+
+<body>
+<div id='container'></div>
+<script>
+  function Flavor1(props) {
+    function useResize(callback) {
+      const throttledCallback = _.throttle(callback, 100);
+      React.useEffect(() => {
+        window.addEventListener('resize', throttledCallback);
+        return () => {
+          window.removeEventListener('resize', throttledCallback);
+        }
+      });
+    }
+
+    useResize(() => console.log('resize'));
+
+    const [renderCount, setRenderCount] = React.useState(0);
+    React.useEffect(() => {
+      if (renderCount < props.times) {
+        setRenderCount(renderCount + 1);
+      } else {
+        props.onFinish();
+      }
+    });
+
+    return React.createElement('div', null, 'flavor1 rendered times:' + renderCount);
+  }
+
+  class Flavor2 extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {
+        renderCount: 0
+      };
+    }
+
+    componentDidMount() {
+      this.setState({renderCount: this.state.renderCount + 1});
+      window.addEventListener('resize', this._onResize);
+    }
+
+    componentWillUnmount() {
+      window.removeEventListener('resize', this._onResize);
+    }
+
+    componentDidUpdate() {
+      if (this.state.renderCount >= this.props.times) {
+        this.props.onFinish();
+      } else {
+        Promise.resolve().then(() => this.setState({renderCount: this.state.renderCount + 1}));
+      }
+    }
+
+    _onResize = _.throttle(() => {
+      console.log('resize');
+    });
+
+    render() {
+      return React.createElement('div', null, 'flavor2 rendered times:' + this.state.renderCount);
+    }
+  }
+
+  function App() {
+    const times = 10000000;
+    const [time1, setTime1] = React.useState(0);
+    const [time2, setTime2] = React.useState(0);
+    const [flavorToRender, setFlavorToRender] = React.useState(0);
+
+    function startFlavor(flavor) {
+      setTimeout(() => setFlavorToRender({flavor, startTime: new Date().getTime()}), 1000);
+    }
+
+    function finishFlavor() {
+      if (flavorToRender.flavor === 1) {
+        setTime1(new Date().getTime() - flavorToRender.startTime);
+      }
+
+      if (flavorToRender.flavor === 2) {
+        setTime2(new Date().getTime() - flavorToRender.startTime);
+      }
+
+      setFlavorToRender({});
+    }
+
+    React.useEffect(() => {
+      startFlavor(1);
+    }, []);
+
+    return (
+      // <div className='container'>
+      //   <div className='flavorwrapper'>
+      //     <div className='flavor'>
+      //       <span>Flavor 1</span>
+      //       <div>{time1}</div>
+      //     </div>
+      //     <div className='flavor'>
+      //       <span>Flavor 2</span>
+      //       <div>{time2}</div>
+      //     </div>
+      //   </div>
+      //   <div>{flavorToRender === 1 && <Flavor1 onFinish={(time) => { setTime1(time); setFlavorToRender(2); }} />}</div>
+      //   <div>{flavorToRender === 2 && <Flavor1 onFinish={(time) => { setTime2(time); setFlavorToRender(3); }} />}</div>
+      // </div>
+      React.createElement(
+        'div',
+        {className: 'container'},
+        React.createElement(
+          'div',
+          {className: 'flavorwrapper'},
+          React.createElement(
+            'span',
+            {className: 'flavor'},
+            React.createElement(
+              'div',
+              null,
+              'Flavor 1'
+            ),
+            React.createElement(
+              'span',
+              null,
+              time1
+            )
+          ),
+          React.createElement(
+            'div',
+            {className: 'flavor'},
+            React.createElement(
+              'span',
+              null,
+              'Flavor 2'
+            ),
+            React.createElement(
+              'span',
+              null,
+              time2
+            )
+          )
+        ),
+        React.createElement(
+          'div',
+          {className: 'placeholder'},
+          flavorToRender.flavor === 1 && React.createElement(Flavor2, {
+            onFinish: () => {
+              finishFlavor();
+              startFlavor(2);
+            },
+            times,
+          })
+        ),
+        React.createElement(
+          'div',
+          {className: 'placeholder'},
+          flavorToRender.flavor === 2 && React.createElement(Flavor1, {
+            onFinish: () => {
+              finishFlavor();
+              setTimeout(() => alert('Finished'));
+            },
+            times
+          })
+        )
+      )
+    );
+  }
+
+  ReactDOM.render(
+    React.createElement(App, null),
+    document.getElementById('container')
+  )
+</script>
+</body>
